@@ -98,9 +98,9 @@
 
 **Where it lives:** `agent.py::run_agent`
 
-**How the query is parsed:** <!-- regex, string splitting, or asking the model — say which -->
+**How the query is parsed:** Deterministic regular expressions extract `size` and `max_price`; after those filters and common request prefixes are removed, the remaining text becomes `description`.
 
-**What moves through the session:** <!-- which fields, in what order -->
+**What moves through the session:** `query` becomes `parsed`, then `search_results`; the first result becomes `selected_item`, which is read from the session by `suggest_outfit`. Its result becomes `outfit_suggestion`, which is read with `selected_item` by `create_fit_card` to produce `fit_card`. An empty `search_results` list sets `error` and stops before those later fields are populated.
 
 ---
 
