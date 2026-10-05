@@ -185,40 +185,40 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
     Test it from a terminal before you move on:
         python -c "from tools import suggest_outfit; from utils.data_loader import get_example_wardrobe, load_listings; print(suggest_outfit(load_listings()[0], get_example_wardrobe()))"
     """
-    item = new_item or {}
+    selected_item = new_item or {}
     wardrobe_items = wardrobe.get("items", []) if isinstance(wardrobe, dict) else []
 
     if not wardrobe_items:
         prompt = (
             "You are a helpful fashion stylist. Suggest 1 or 2 outfits for this thrifted item. "
             "Keep the advice practical and specific.\n\n"
-            f"Item: {item.get('title', 'Unknown item')}\n"
-            f"Category: {item.get('category', 'unknown')}\n"
-            f"Description: {item.get('description', '')}\n"
-            f"Colors: {', '.join(item.get('colors', []) or [])}\n"
-            f"Style tags: {', '.join(item.get('style_tags', []) or [])}\n"
+            f"Item: {selected_item.get('title', 'Unknown item')}\n"
+            f"Category: {selected_item.get('category', 'unknown')}\n"
+            f"Description: {selected_item.get('description', '')}\n"
+            f"Colors: {', '.join(selected_item.get('colors', []) or [])}\n"
+            f"Style tags: {', '.join(selected_item.get('style_tags', []) or [])}\n"
             "Give general styling ideas that work without needing the user to own a lot of pieces."
         )
         return generate(prompt, system="You are a concise but useful fashion stylist.")
 
     wardrobe_lines = []
-    for item in wardrobe_items:
-        if not isinstance(item, dict):
+    for wardrobe_item in wardrobe_items:
+        if not isinstance(wardrobe_item, dict):
             continue
-        name = item.get("name", "Unknown piece")
-        category = item.get("category", "")
-        colors = ", ".join(item.get("colors", []) or []) or "neutral"
-        tags = ", ".join(item.get("style_tags", []) or []) or "basic"
+        name = wardrobe_item.get("name", "Unknown piece")
+        category = wardrobe_item.get("category", "")
+        colors = ", ".join(wardrobe_item.get("colors", []) or []) or "neutral"
+        tags = ", ".join(wardrobe_item.get("style_tags", []) or []) or "basic"
         wardrobe_lines.append(f"- {name} ({category}; colors: {colors}; tags: {tags})")
 
     prompt = (
         "You are a fashion stylist. Recommend 1 or 2 outfits for the thrifted item using pieces the user already owns. "
         "Name the pieces from the wardrobe explicitly and keep the suggestions wearable.\n\n"
-        f"New item: {item.get('title', 'Unknown item')}\n"
-        f"Category: {item.get('category', 'unknown')}\n"
-        f"Description: {item.get('description', '')}\n"
-        f"Colors: {', '.join(item.get('colors', []) or [])}\n"
-        f"Style tags: {', '.join(item.get('style_tags', []) or [])}\n\n"
+        f"New item: {selected_item.get('title', 'Unknown item')}\n"
+        f"Category: {selected_item.get('category', 'unknown')}\n"
+        f"Description: {selected_item.get('description', '')}\n"
+        f"Colors: {', '.join(selected_item.get('colors', []) or [])}\n"
+        f"Style tags: {', '.join(selected_item.get('style_tags', []) or [])}\n\n"
         "Wardrobe:\n" + "\n".join(wardrobe_lines)
     )
     return generate(prompt, system="You are a concise fashion stylist who names wardrobe pieces.")
@@ -271,9 +271,10 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
 
     item = new_item or {}
     prompt = (
-        "Write a short, natural caption for a thrift find post. It should be 2 to 4 sentences long, sound like a real person wrote it, "
-        "mention the item, its price, and the platform once each, and describe the overall vibe. Keep it specific and convincing.\n\n"
-        f"Item title: {item.get('title', 'Unknown item')}\n"
+        "Write a short, natural caption for a thrift find post in 2 to 4 sentences. "
+        "Use the exact item title, price, and platform supplied below once each. "
+        "Describe the outfit's vibe, but do not invent item details that are not supplied.\n\n"
+        f"Exact item title: {item.get('title', 'Unknown item')}\n"
         f"Category: {item.get('category', 'unknown')}\n"
         f"Price: ${item.get('price', 'unknown')}\n"
         f"Platform: {item.get('platform', 'unknown')}\n"
@@ -281,4 +282,8 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
         f"Description: {item.get('description', '')}\n"
         f"Outfit idea: {outfit.strip()}"
     )
-    return generate(prompt, system="You are a social caption writer for thrift finds.")
+    caption = generate(prompt, system="You are a social caption writer for thrift finds.")
+    title = str(item.get("title") or "").strip()
+    if title and title.casefold() not in caption.casefold():
+        caption = f"{title}: {caption}"
+    return caption

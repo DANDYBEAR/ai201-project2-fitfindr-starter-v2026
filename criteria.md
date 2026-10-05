@@ -24,7 +24,7 @@ data earns credit; *"80% seemed reasonable"* does not.
 Given a query that matches at least one listing, the agent completes all three
 tool calls and returns a fit card — in at least 4 of 5 tries.
 
-**Why this target:**
+**Why this target:** I chose 4 of 5 because query parsing and keyword matching can miss an unusual phrasing even when a relevant listing exists, while most ordinary queries should still complete the full workflow.
 <!-- Why 4 of 5 and not 5 of 5? Something about your search, probably —
      "my search is a plain keyword match and some phrasings will miss" is a
      real answer. -->
@@ -36,13 +36,17 @@ tool calls and returns a fit card — in at least 4 of 5 tries.
 Given a query that matches no listings, the agent stops before calling
 `suggest_outfit` and returns a message naming what to change — 5 of 5 tries.
 
-**Why this target:**
+**Why this target:** I chose 5 of 5 because this branch checks a deterministic empty list rather than judging model-generated text; any call to the next tool would be a loop-control error.
 <!-- Why is 5 of 5 reasonable here when criterion 1 isn't? What's different
      about this path? -->
 
 ---
 
-## 3. Something about state
+## 3. The selected listing is passed through state unchanged
+
+For 5 matching queries, `session['selected_item']['id']` equals
+`session['search_results'][0]['id']`, and the recorded `new_item` argument sent
+to `suggest_outfit` has that same `id` -- 5 of 5 tries.
 
 <!-- YOU WRITE THIS ONE.
 
@@ -56,13 +60,17 @@ Given a query that matches no listings, the agent stops before calling
 
 
 
-**Why this target:**
+**Why this target:** I chose 5 of 5 because selecting and passing a dictionary is deterministic state handling, not model output. One mismatched `id` would mean later tools are styling a different item from the one shown to the user.
 
 
 
 ---
 
-## 4. Something about the fit card
+## 4. The fit card preserves the facts while wording can vary
+
+Given the same valid item and outfit input in 5 tries, at least 4 fit cards are
+two to four sentences and mention the selected item's title, exact price, and
+platform.
 
 <!-- YOU WRITE THIS ONE.
 
@@ -77,13 +85,17 @@ Given a query that matches no listings, the agent stops before calling
 
 
 
-**Why this target:**
+**Why this target:** I chose 4 of 5 because model wording is nondeterministic and one response may miss a formatting or detail requirement. The title, price, platform, and length checks still make acceptable output objectively scorable.
 
 
 
 ---
 
-## 5. Your choice
+## 5. An empty wardrobe still produces a complete result
+
+Given a matching query and a wardrobe whose `items` list is empty, the agent
+completes both remaining tool calls and returns non-empty strings in
+`session['outfit_suggestion']` and `session['fit_card']` in at least 4 of 5 tries.
 
 <!-- YOU WRITE THIS ONE TOO.
 
@@ -94,7 +106,7 @@ Given a query that matches no listings, the agent stops before calling
 
 
 
-**Why this target:**
+**Why this target:** I chose 4 of 5 because the empty-wardrobe branch still depends on model-generated advice, which may occasionally fail or return unusable text. It should nevertheless degrade gracefully and finish the workflow in most runs.
 
 
 

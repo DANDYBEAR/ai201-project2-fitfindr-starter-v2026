@@ -121,18 +121,23 @@ $ python app.py ask '...'
 **The three tools, tested one at a time**
 
 ```
-$ python -c "from tools import search_listings; print(search_listings('graphic tee', max_price=30))"
-
+$ & '.\.venv\Scripts\python.exe' -c "from tools import search_listings; print(search_listings('graphic tee', size='M', max_price=30))"
+[{'id': 'lst_002', 'title': 'Y2K Baby Tee — Butterfly Print', 'description': 'Super cute early 2000s baby tee with butterfly graphic. Fitted crop length. Tag says medium but fits like a small.', 'category': 'tops', 'style_tags': ['y2k', 'vintage', 'graphic tee', 'cottagecore'], 'size': 'S/M', 'condition': 'excellent', 'price': 18.0, 'colors': ['white', 'pink', 'purple'], 'brand': None, 'platform': 'depop'}, {'id': 'lst_017', 'title': 'Mesh Long-Sleeve Top — Black', 'description': 'Sheer black mesh long-sleeve. Great for layering under a graphic tee or over a bralette. Stretchy material, fits true to size.', 'category': 'tops', 'style_tags': ['y2k', 'grunge', 'goth', 'layering'], 'size': 'S/M', 'condition': 'excellent', 'price': 15.0, 'colors': ['black'], 'brand': None, 'platform': 'depop'}]
 ```
 
 ```
-$ python -c "from tools import suggest_outfit; ..."
-
+$ & '.\.venv\Scripts\python.exe' -c "from tools import suggest_outfit; item={'title':'Test Graphic Tee','category':'tops','description':'black cotton graphic tee','colors':['black'],'style_tags':['casual']}; wardrobe={'items':[{'name':'Test Blue Jeans','category':'bottoms','colors':['blue'],'style_tags':['casual']},{'name':'Test White Sneakers','category':'shoes','colors':['white'],'style_tags':['casual']}]}; print(suggest_outfit(item, wardrobe))"
+**Outfit 1: Classic Weekend**
+* **Top:** Test Graphic Tee
+* **Bottoms:** Test Blue Jeans
+* **Shoes:** Test White Sneakers
 ```
 
 ```
-$ python -c "from tools import create_fit_card; ..."
-
+$ $env:AI201_CACHE='0'; & '.\.venv\Scripts\python.exe' -c "from tools import create_fit_card; item={'title':'Test Graphic Tee','category':'tops','description':'black cotton graphic tee','price':18.0,'platform':'Test Market','colors':['black']}; outfit='Pair it with blue jeans and white sneakers.'; [print(f'RUN {i}: {create_fit_card(outfit, item)}') for i in range(1, 4)]"
+RUN 1: Test Graphic Tee: Scored this black cotton graphic tee for just $18.0! It's giving off the ultimate effortless weekend vibe when paired with blue jeans and white sneakers. Grab it now on Test Market before someone else does!
+RUN 2: Scored this ultimate Test Graphic Tee for just $18.0! It's giving off the best casual-cool energy, especially when styled with blue jeans and white sneakers. Grab it now exclusively on Test Market before someone else does!
+RUN 3: Just scored this sleek Test Graphic Tee for only $18.0! It's got such a cool, effortless vibe when you pair it with blue jeans and white sneakers. Grab it soon over on Test Market before someone else does!
 ```
 
 ---
