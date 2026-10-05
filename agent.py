@@ -13,6 +13,8 @@ Build and test your three tools in `tools.py` first. Then come here.
     python agent.py          runs both example paths below
 """
 
+import re
+
 import config
 import trace
 from tools import search_listings, suggest_outfit, create_fit_card
@@ -49,6 +51,52 @@ def new_session(query: str, wardrobe: dict) -> dict:
 
 # ── planning loop ─────────────────────────────────────────────────────────────
 
+_PRICE_PATTERN = re.compile(
+    r"\b(?:under|below|up\s+to|max(?:imum)?(?:\s+price)?(?:\s+of)?|budget(?:\s+of)?)"
+    r"\s*\$?\s*(\d+(?:\.\d+)?)|\$(\d+(?:\.\d+)?)",
+    re.IGNORECASE,
+)
+_SIZE_PATTERN = re.compile(
+    r"\bsize\s+((?:one\s+size)|(?:[a-z0-9]+(?:[/.-][a-z0-9]+)*))\b",
+    re.IGNORECASE,
+)
+
+
+def _parse_query(query: str) -> dict:
+    """Extract deterministic search inputs from a plain-language query."""
+    text = (query or "").strip()
+    price_match = _PRICE_PATTERN.search(text)
+    price_text = (price_match.group(1) or price_match.group(2)) if price_match else None
+    size_match = _SIZE_PATTERN.search(text)
+    size = size_match.group(1).upper() if size_match else None
+
+    description = _PRICE_PATTERN.sub(" ", text)
+    description = _SIZE_PATTERN.sub(" ", description)
+    description = re.sub(
+        r"^(?:(?:i(?:'m| am)?\s+)?(?:looking|searching)\s+for|"
+        r"(?:i\s+)?(?:want|need)|find\s+me|show\s+me)\s+",
+        "",
+        description,
+        flags=re.IGNORECASE,
+    )
+    description = re.sub(r"\s+", " ", description).strip(" ,.;:-")
+
+    return {
+        "description": description,
+        "size": size,
+        "max_price": float(price_text) if price_text is not None else None,
+    }
+
+
+def _no_results_message(parsed: dict) -> str:
+    changes = ["broader description keywords"]
+    if parsed.get("size"):
+        changes.append("a different size")
+    if parsed.get("max_price") is not None:
+        changes.append("a higher maximum price")
+    return "No listings matched those filters. Try " + ", ".join(changes) + "."
+
+
 def run_agent(query: str, wardrobe: dict) -> dict:
     """
     Run the loop once and return the finished session.
@@ -64,7 +112,7 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         the run ended early and the later fields will still be None.
 
     ─────────────────────────────────────────────────────────────────────────
-    TODO — build this, following the branch rule you wrote in Milestone 2.
+    The loop follows the branch rule written in Milestone 2:
 
       1. Start a session with new_session().
 
@@ -106,9 +154,41 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         than a stack trace. The import is already at the top of this file.
     """
     session = new_session(query, wardrobe)
+    stage = "search"
+    iteration = 0
 
-    # TODO: delete these two lines and build the loop.
-    session["error"] = "The planning loop isn't built yet — see the TODO in agent.py."
+    while stage is not None:
+        iteration += 1
+        trace.check_iterations(iteration)
+
+        if stage == "search":
+            session["parsed"] = _parse_query(session["query"])
+            parsed = session["parsed"]
+            session["search_results"] = search_listings(
+                parsed["description"], parsed["size"], parsed["max_price"]
+            )
+
+            if not session["search_results"]:
+                session["error"] = _no_results_message(session["parsed"])
+                return session
+
+            session["selected_item"] = session["search_results"][0]
+            stage = "outfit"
+            continue
+
+        if stage == "outfit":
+            session["outfit_suggestion"] = suggest_outfit(
+                session["selected_item"], session["wardrobe"]
+            )
+            stage = "fit_card"
+            continue
+
+        if stage == "fit_card":
+            session["fit_card"] = create_fit_card(
+                session["outfit_suggestion"], session["selected_item"]
+            )
+            stage = None
+
     return session
 
 
