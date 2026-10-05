@@ -59,24 +59,25 @@
 
 ### `search_listings`
 
-- **What it does:**
+- **What it does:** Searches the listings dataset for items matching a description and optional size and maximum-price filters, then ranks matches by relevance.
 - **Inputs:** <!-- name and type each: `max_price` (float), not "a price" -->
-- **Returns:**
-- **When it has nothing:**
+     `description` (`str`), `size` (`Optional[str]`), and `max_price` (`Optional[float]`).
+- **Returns:** A relevance-ranked `list[dict]`, limited to `config.SEARCH_RESULT_LIMIT`; every listing dictionary contains `id`, `title`, `description`, `category`, `style_tags` (`list`), `size`, `condition`, `price` (`float`), `colors` (`list`), `brand` (`Optional[str]`), and `platform`.
+- **When it has nothing:** Returns an empty list (`[]`).
 
 ### `suggest_outfit`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Suggests one or two outfits for a selected thrift listing, using specific pieces the user owns when possible.
+- **Inputs:** `new_item` (`dict`) containing one listing and `wardrobe` (`dict`) with an `items` key whose value is a `list[dict]` of wardrobe pieces.
+- **Returns:** A non-empty `str` containing one or two wearable outfit suggestions; when wardrobe items exist, the suggestions name specific pieces from that list.
+- **When it has nothing:** If the wardrobe `items` list is missing or empty, returns a non-empty `str` with general styling advice instead of raising an exception or returning an empty string.
 
 ### `create_fit_card`
 
-- **What it does:**
-- **Inputs:**
-- **Returns:**
-- **When it has nothing:**
+- **What it does:** Turns an outfit suggestion and its selected thrift listing into a short, shareable caption.
+- **Inputs:** `outfit` (`str`) and `new_item` (`dict`) containing the selected listing.
+- **Returns:** A non-empty `str` of two to four sentences that mentions the item, its price, and its platform once each and describes the outfit's vibe.
+- **When it has nothing:** If `outfit` is empty or whitespace, returns a non-empty fallback caption based on `new_item` instead of raising an exception or calling the model.
 
 ---
 
@@ -93,7 +94,7 @@
      The grader checks your code against what you claim here, so the file and
      function have to be real. -->
 
-**Branch rule:**
+**Branch rule:** If `search_listings` returns an empty list, put a helpful no-results message in the session and stop. Otherwise, store the first result as the selected item and pass it to `suggest_outfit`.
 
 **Where it lives:** `agent.py::run_agent`
 
