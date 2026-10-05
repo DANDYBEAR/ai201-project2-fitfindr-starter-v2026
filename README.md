@@ -41,7 +41,7 @@
 
 <!-- Three or four sentences: what a user asks for, and what they get back. -->
 
-
+FitFindr accepts a natural-language request for secondhand clothing, including an optional size and maximum price. It searches a mock thrift-listings dataset, ranks the matches, and selects the strongest result. The agent then suggests outfits using the user's saved wardrobe—or general styling advice when that wardrobe is empty—and creates a short shareable fit-card caption. If no listing matches, it stops before styling and tells the user to broaden the keywords, change the size, or raise the price limit.
 
 ---
 
@@ -114,8 +114,26 @@
 **One full query**
 
 ```
-$ python app.py ask '...'
+$ & '.\.venv\Scripts\python.exe' app.py ask 'looking for a vintage graphic tee under $30' --empty-wardrobe
+(running with an empty wardrobe)
 
+  Found:    Graphic Tee — 2003 Tour Bootleg Style — $24.0 on depop
+
+  Outfit:   Here are two easy, versatile ways to style your vintage-wash graphic tee:
+
+**1. The Off-Duty Grunge (Casual & Edgy)**
+* **Bottoms:** Straight-leg medium-wash blue jeans with a relaxed or slightly distressed fit.
+* **Footwear:** Classic black canvas sneakers (like Converse or Vans) or beat-up combat boots.
+* **Styling Tip:** Do a simple "tuck and pull" (tuck the tee in loosely and pull it out slightly) to balance the boxy fit with the straight-leg denim. Add a silver chain necklace if you have one.
+
+**2. High-Low Contrast (Streetwear Vibe)**
+* **Bottoms:** Tailored black trousers or pleated wide-leg pants (belted at the waist).
+* **Footwear:** White leather low-top sneakers.
+* **Styling Tip:** Fully tuck the tee into the trousers to define your waist and create a sharp contrast between the formal pants and the casual, worn-in top.
+
+  Fit card: Channel some effortless off-duty grunge with this Graphic Tee — 2003 Tour Bootleg Style, now available for just $24.0. The faded black cotton and slightly boxy fit give it that ultimate worn-in streetwear edge. Grab it over on my depop before it’s gone!
+
+2 model calls this session, 482 prompt + 284 output tokens
 ```
 
 **The three tools, tested one at a time**
@@ -153,15 +171,15 @@ RUN 3: Just scored this sleek Test Graphic Tee for only $18.0! It's got such a c
 
 **Moment 1**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* I asked AI to review `suggest_outfit` against the tool contract and check whether the selected search result was the item described to the model.
+- *What came back:* It found that `item = new_item` was later overwritten by `for item in wardrobe_items`, so the prompt described the last wardrobe piece as the new thrift listing.
+- *What I changed:* I renamed the values to `selected_item` and `wardrobe_item`, updated every prompt reference, and tested that the prompt contained `New item: Selected Item` rather than the final wardrobe item's name.
 
 **Moment 2**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:* I asked AI to attack three `create_fit_card` outputs using my criterion that a card must preserve the exact item title, price, and platform while allowing different wording.
+- *What came back:* The three captions varied, but two omitted the exact title and the first outputs invented details such as a vintage fade that were not in the supplied item.
+- *What I changed:* I tightened the prompt to require the supplied facts and forbid invented item details, then added a deterministic title-preservation guard. I reran the same input three times with caching disabled and confirmed that all three cards varied while retaining `Test Graphic Tee`, `$18.0`, and `Test Market`.
 
 <!-- ═══════════════════════ UNIT 4 — THE TEST ═══════════════════════
 
