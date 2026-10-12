@@ -17,7 +17,8 @@ import re
 
 import config
 import trace
-from tools import search_listings, suggest_outfit, create_fit_card
+from mcp_client import call_tool
+from tools import suggest_outfit, create_fit_card
 from generate import ModelUnavailable
 
 
@@ -162,17 +163,34 @@ def run_agent(query: str, wardrobe: dict) -> dict:
         trace.check_iterations(iteration)
 
         if stage == "search":
-            session["parsed"] = _parse_query(session["query"])
-            parsed = session["parsed"]
-            session["search_results"] = search_listings(
-                parsed["description"], parsed["size"], parsed["max_price"]
+            parsed = _parse_query(session["query"])
+            results = call_tool("search_listings", {
+                "description": parsed["description"],
+                "size": parsed["size"],
+                "max_price": parsed["max_price"],
+            })
+
+            session["parsed"] = parsed
+            trace.step("parse_query", inputs=query, returned=str(parsed))
+
+            session["search_results"] = results
+            trace.step(
+                "search_listings (via MCP)",
+                inputs=str(parsed),
+                returned=results,
+                note=f"{len(results)} match(es)",
             )
 
-            if not session["search_results"]:
-                session["error"] = _no_results_message(session["parsed"])
+            if not results:
+                session["error"] = _no_results_message(parsed)
+                trace.step(
+                    "branch",
+                    note="search returned []: stopping before suggest_outfit",
+                )
                 return session
 
-            session["selected_item"] = session["search_results"][0]
+            session["selected_item"] = results[0]
+            trace.step("select_item", returned=session["selected_item"])
             stage = "outfit"
             continue
 
@@ -180,12 +198,22 @@ def run_agent(query: str, wardrobe: dict) -> dict:
             session["outfit_suggestion"] = suggest_outfit(
                 session["selected_item"], session["wardrobe"]
             )
+            trace.step(
+                "suggest_outfit",
+                inputs=session["selected_item"],
+                returned=session["outfit_suggestion"],
+            )
             stage = "fit_card"
             continue
 
         if stage == "fit_card":
             session["fit_card"] = create_fit_card(
                 session["outfit_suggestion"], session["selected_item"]
+            )
+            trace.step(
+                "create_fit_card",
+                inputs=session["selected_item"],
+                returned=session["fit_card"],
             )
             stage = None
 
