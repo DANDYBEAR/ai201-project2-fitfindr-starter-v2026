@@ -271,9 +271,11 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
 
     item = new_item or {}
     prompt = (
-        "Write a short, natural caption for a thrift find post in 2 to 4 sentences. "
-        "Use the exact item title, price, and platform supplied below once each. "
-        "Describe the outfit's vibe, but do not invent item details that are not supplied.\n\n"
+        "Write exactly 3 sentences for a short, natural thrift-find caption. "
+        "Include the exact item title, exact price, and exact platform supplied "
+        "below, each at least once. Describe the outfit's vibe without inventing "
+        "item details. Before returning, silently verify the caption has exactly "
+        "3 sentences and contains all three exact facts.\n\n"
         f"Exact item title: {item.get('title', 'Unknown item')}\n"
         f"Category: {item.get('category', 'unknown')}\n"
         f"Price: ${item.get('price', 'unknown')}\n"

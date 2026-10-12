@@ -309,14 +309,28 @@ Looking for the ultimate versatile layering piece? This Denim Jacket — Light W
 
 | # | Criterion | Target | Verdict | How I decided |
 |---|---|---|---|---|
-| 1 |  |  |  |  |
-| 2 |  |  |  |  |
-| 3 |  |  |  |  |
-| 4 |  |  |  |  |
-| 5 |  |  |  |  |
+| 1 | Matching query completes all three tools | 4 of 5 | **MET (5/5)** | Every try reached `search_listings`, `suggest_outfit`, and `create_fit_card`, then returned a non-empty fit card. |
+| 2 | Impossible query stops before the second tool | 5 of 5 | **MET (5/5)** | Every trace showed an empty MCP search result followed by the stop branch, with no `suggest_outfit` step and an actionable message. |
+| 3 | Selected listing passes through state unchanged | 5 of 5 | **MET (5/5)** | In every try, the first search-result ID, `selected_item` ID, and ID recorded at the `suggest_outfit` call were identical. |
+| 4 | Fit card preserves the facts while wording can vary | 4 of 5 | **MET (5/5)** | All five cards were 2–3 sentences and contained the exact title `Graphic Tee — 2003 Tour Bootleg Style`, price `$24.0`, and platform `depop`. |
+| 5 | Empty wardrobe still produces a complete result | 4 of 5 | **MET (5/5)** | All five empty-wardrobe tries returned non-empty outfit advice and a non-empty fit card without stopping early. |
 
 **Diagnoses**
 
+There were no misses to diagnose: all five criteria exceeded or equaled their
+original targets. The consistent pattern was that the deterministic parts—the
+empty-result branch and the three-ID state transfer—passed 5/5, while all three
+criteria involving live model output also happened to pass 5/5 in this run.
+
+The 4-of-5 targets for criteria 1, 4, and 5 were somewhat conservative, though
+criteria 1 and 5 still have a real external-service failure risk because each
+successful run needs two model calls. Criterion 4 is the one I would tighten in
+a future evaluation: require 5 of 5 cards to preserve the exact title, price,
+and platform and remain 2–4 sentences. Its prompt states those requirements
+explicitly, and `create_fit_card` also enforces title preservation after the
+model returns, so 5 of 5 is a more useful quality bar. I did not revise the
+existing criterion after seeing the results because it was measurable as
+written and was not broken.
 
 
 ---
@@ -406,21 +420,46 @@ empty-list behavior, so the move did not change the tool result.
 
      `python run_eval.py --label after` -->
 
-**What I changed:**
+**What I changed:** I made one implementation change in
+`tools.py::create_fit_card`: rewrote its prompt to require exactly three
+sentences, include the exact title, price, and platform, avoid invented item
+details, and silently check those requirements before returning. No search,
+branch, session, or other tool logic changed.
 
-**Which failure it was meant to fix:**
+**Which failure it was meant to fix:** No original criterion missed. The
+diagnosis identified criterion 4 as the conservative target worth tightening,
+so this change addressed its remaining consistency gap: the before run met the
+2–4 sentence criterion, but only 4 of 5 cards used the same three-sentence
+shape.
 
 ### Run Log — After
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. Matching query completes all three tools | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. Impossible query stops before tool 2 | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. Selected listing passes through state unchanged | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. Fit card preserves title, price, platform, and length | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. Empty wardrobe still produces a complete result | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
 
-**Did it help, and how do I know:**
+After-run evidence: `results/run_2026-10-11_2247_after.md`, produced by
+`run_eval.py::run_once` calling `agent.py::run_agent` five times per scenario
+with caching off.
+
+**Did it help, and how do I know:** It improved consistency, but it did not
+improve the original criterion pass rate because that was already 5/5. In the
+before run, criterion 4's five cards had sentence counts of 3, 2, 3, 3, and 3;
+in the after run, all five had exactly 3 sentences. Both runs preserved the
+exact title, `$24.0`, and `depop` in 5 of 5 cards. The full after suite also
+remained at 5/5 for every other criterion, so the isolated prompt change did
+not regress the search branch, state transfer, full run, or empty-wardrobe
+path.
+
+One real after-run card from criterion 4, Try 1:
+
+```
+Channeling that effortless 90s streetwear grunge is so easy with this perfectly worn-in piece. You can snag the Graphic Tee — 2003 Tour Bootleg Style for just $24.0 over on depop right now. Grab it before someone else adds it to their rotation!
+```
 
 <!-- If it made things worse, say that. Honestly reported, that earns full
      credit and is more interesting than one that worked. -->
@@ -430,7 +469,14 @@ empty-list behavior, so the move did not change the tool result.
 ---
 
 ## What's Still Broken
-
+The five written criteria are currently met, but the search ranking still has
+a relevance weakness outside those pass conditions: the query `black leather
+jacket under $60` selected `Leather Belt — Brown, Braided` because independent
+keyword matches can outrank the requested item type. I left that unchanged so
+this experiment measured only the fit-card prompt rewrite. Also, exact
+three-sentence compliance is still prompt-driven rather than enforced by a
+deterministic validator, so another model or temperature could behave
+differently despite this run's 5-of-5 result.
 <!-- For each criterion still missed: what you'd do, and why you stopped where
      you did. "I ran out of time" is fine if it's true. Pretending nothing is
      left is not. -->
