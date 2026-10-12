@@ -186,11 +186,17 @@ def write_report(rows, args):
 
             session = record["session"] or {}
             item = session.get("selected_item") or {}
+            search_results = session.get("search_results") or []
+            first_result = search_results[0] if search_results else {}
             lines += [
                 f"- stopped early: {'yes — ' + str(session.get('error')) if session.get('error') else 'no'}",
                 f"- selected_item: {item.get('title', '(none)')}"
                 + (f" (${item.get('price')}, {item.get('platform')})" if item else ""),
-                f"- search_results: {len(session.get('search_results') or [])}",
+                f"- search_results: {len(search_results)}",
+                f"- first search result ID: {first_result.get('id', '(none)')}",
+                f"- selected item ID: {item.get('id', '(none)')}",
+                "- ID passed to suggest_outfit: "
+                f"{session.get('suggest_outfit_item_id') or '(none)'}",
                 "",
             ]
             if session.get("outfit_suggestion"):

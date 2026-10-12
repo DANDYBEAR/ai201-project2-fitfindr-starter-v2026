@@ -43,6 +43,7 @@ def new_session(query: str, wardrobe: dict) -> dict:
         "parsed": {},                # description / size / max_price you pulled out of it
         "search_results": [],        # everything search_listings returned
         "selected_item": None,       # the one you chose — goes into suggest_outfit
+        "suggest_outfit_item_id": None,  # ID actually handed to suggest_outfit
         "wardrobe": wardrobe,        # the user's wardrobe
         "outfit_suggestion": None,   # what suggest_outfit returned
         "fit_card": None,            # what create_fit_card returned
@@ -96,6 +97,14 @@ def _no_results_message(parsed: dict) -> str:
     if parsed.get("max_price") is not None:
         changes.append("a higher maximum price")
     return "No listings matched those filters. Try " + ", ".join(changes) + "."
+
+
+def _model_unavailable_message(stage: str) -> str:
+    """Turn a model failure into a stage-specific, actionable user message."""
+    return (
+        f"The model couldn't be reached, so I couldn't generate the {stage}. "
+        "Check your internet connection and GEMINI_API_KEY, then try again."
+    )
 
 
 def run_agent(query: str, wardrobe: dict) -> dict:
@@ -195,24 +204,58 @@ def run_agent(query: str, wardrobe: dict) -> dict:
             continue
 
         if stage == "outfit":
-            session["outfit_suggestion"] = suggest_outfit(
-                session["selected_item"], session["wardrobe"]
+            outfit_inputs = {
+                "new_item": session["selected_item"],
+                "wardrobe": session["wardrobe"],
+            }
+            session["suggest_outfit_item_id"] = outfit_inputs["new_item"].get("id")
+            outfit_trace_inputs = (
+                f"new_item_id={session['suggest_outfit_item_id']}; "
+                f"new_item={session['selected_item'].get('title')}; "
+                f"wardrobe_items={len(session['wardrobe'].get('items', []))}"
             )
+            try:
+                session["outfit_suggestion"] = suggest_outfit(**outfit_inputs)
+            except ModelUnavailable:
+                session["error"] = _model_unavailable_message("outfit")
+                trace.step(
+                    "suggest_outfit",
+                    inputs=outfit_trace_inputs,
+                    returned=session["error"],
+                    note="model unavailable: stopping before create_fit_card",
+                )
+                return session
             trace.step(
                 "suggest_outfit",
-                inputs=session["selected_item"],
+                inputs=outfit_trace_inputs,
                 returned=session["outfit_suggestion"],
             )
             stage = "fit_card"
             continue
 
         if stage == "fit_card":
-            session["fit_card"] = create_fit_card(
-                session["outfit_suggestion"], session["selected_item"]
+            fit_card_inputs = {
+                "outfit": session["outfit_suggestion"],
+                "new_item": session["selected_item"],
+            }
+            fit_card_trace_inputs = (
+                f"new_item={session['selected_item'].get('title')}; "
+                f"outfit={session['outfit_suggestion']}"
             )
+            try:
+                session["fit_card"] = create_fit_card(**fit_card_inputs)
+            except ModelUnavailable:
+                session["error"] = _model_unavailable_message("fit card")
+                trace.step(
+                    "create_fit_card",
+                    inputs=fit_card_trace_inputs,
+                    returned=session["error"],
+                    note="model unavailable: stopping",
+                )
+                return session
             trace.step(
                 "create_fit_card",
-                inputs=session["selected_item"],
+                inputs=fit_card_trace_inputs,
                 returned=session["fit_card"],
             )
             stage = None

@@ -201,17 +201,90 @@ RUN 3: Just scored this sleek Test Graphic Tee for only $18.0! It's got such a c
 
 | Criterion | Target | Try 1 | Try 2 | Try 3 | Try 4 | Try 5 | Verdict |
 |---|---|---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |  |  |
+| 1. Matching query completes all three tools | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 2. Impossible query stops before tool 2 | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 3. Selected listing passes through state unchanged | 5 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 4. Fit card preserves title, price, platform, and length | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
+| 5. Empty wardrobe still produces a complete result | 4 of 5 | PASS | PASS | PASS | PASS | PASS | MET (5/5) |
 
 **Real output from one try**, pasted as text, naming the file and function
 that produced it:
 
+Source for all five excerpts: `results/run_2026-10-11_2138_before.md`, produced
+by `run_eval.py::run_once` calling `agent.py::run_agent` with caching off.
+
+**Criterion 1 — matching query, Try 1**
+
+```
+- stopped early: no
+- selected_item: Graphic Tee — 2003 Tour Bootleg Style ($24.0, depop)
+- search_results: 10
+
+Fit card:
+
+Channeling serious 90s streetwear energy with this faded black Graphic Tee — 2003 Tour Bootleg Style. It's got that perfectly worn-in, boxy cotton feel and is listed now for just $24.0 over on depop. Grab it before someone else snags this absolute gem!
 ```
 
+**Criterion 2 — impossible query, Try 1**
+
+```
+- stopped early: yes — No listings matched those filters. Try broader description keywords, a different size, a higher maximum price.
+- selected_item: (none)
+- search_results: 0
+
+[2] search_listings (via MCP)
+      in:  {'description': 'designer ballgown', 'size': 'XXS', 'max_price': 5.0}
+      out: [] (empty)
+      →    0 match(es)
+[3] branch
+      →    search returned []: stopping before suggest_outfit
+```
+
+**Criterion 3 — state transfer, Try 1**
+
+```
+- selected_item: Leather Belt — Brown, Braided ($12.0, thredUp)
+- search_results: 10
+- first search result ID: lst_014
+- selected item ID: lst_014
+- ID passed to suggest_outfit: lst_014
+```
+
+**Criterion 4 — repeated fit-card input, Try 1**
+
+```
+- selected_item: Graphic Tee — 2003 Tour Bootleg Style ($24.0, depop)
+
+Fit card:
+
+Channeling serious Y2K grunge streetwear vibes with this Graphic Tee — 2003 Tour Bootleg Style. It's listed on depop for just $24.0 and brings that perfect lived-in feel to your rotation. Grab it before it's gone!
+```
+
+**Criterion 5 — empty wardrobe, Try 2**
+
+```
+- stopped early: no
+- selected_item: Denim Jacket — Light Wash, Cropped ($42.0, poshmark)
+
+Outfit suggestion:
+
+Here are two easy, versatile outfits using wardrobe basics:
+
+**1. Off-Duty Casual (The Classic Denim-on-Denim)**
+*   **Top:** A simple white crewneck t-shirt.
+*   **Bottoms:** Black straight-leg trousers or black jeans (creates high contrast with the light wash).
+*   **Shoes:** White canvas sneakers.
+*   *Why it works:* The cropped cut of the jacket defines the waist, making basic separates look intentional and styled.
+
+**2. Effortless Prep (Contrast & Proportion)**
+*   **Top:** A black or grey ribbed tank top tucked in.
+*   **Bottoms:** A pleated midi skirt (black, olive, or plaid) or wide-leg chinos.
+*   **Shoes:** Flat loafers or retro running sneakers.
+*   *Why it works:* The cropped jacket balances the volume of a fuller skirt or wide-leg pants without needing a belt.
+
+Fit card:
+
+Looking for the ultimate versatile layering piece? This Denim Jacket — Light Wash, Cropped has the best structured shoulders and is a total blank canvas for $42.0. Grab it now over on poshmark to easily style with all your favorite everyday basics!
 ```
 
 ---
@@ -263,13 +336,40 @@ that produced it:
 **Happy path**
 
 ```
-
+$ & '.\.venv\Scripts\python.exe' app.py ask 'looking for a vintage graphic tee under $30' --empty-wardrobe --trace
+(running with an empty wardrobe)
+[1] parse_query
+      in:  looking for a vintage graphic tee under $30
+      out: {'description': 'a vintage graphic tee', 'size': None, 'max_price': 30.0}
+[2] search_listings (via MCP)
+      in:  {'description': 'a vintage graphic tee', 'size': None, 'max_price': 30.0}
+      out: 10 items: Graphic Tee — 2003 Tour Bootleg Style, Vintage Band Tee — Faded Grey, Vintage Graphic Hoodie — Faded Black … +7 more
+      →    10 match(es)
+[3] select_item
+      out: Graphic Tee — 2003 Tour Bootleg Style ($24.0, depop)
+[4] suggest_outfit
+      in:  new_item=Graphic Tee — 2003 Tour Bootleg Style; wardrobe_items=0
+      out: Here are two easy, versatile ways to style your vintage-wash graphic tee:  **1. The Off-Duty Grunge (Casual & …
+[5] create_fit_card
+      in:  new_item=Graphic Tee — 2003 Tour Bootleg Style; outfit=Here are two easy, versatile ways to style your vintage…
+      out: Channel some effortless off-duty grunge with this Graphic Tee — 2003 Tour Bootleg Style, now available for jus…
 ```
 
 **Empty search**
 
 ```
+$ & '.\.venv\Scripts\python.exe' app.py ask 'plutonium spacesuit size XXXXL under $1' --trace
+[1] parse_query
+      in:  plutonium spacesuit size XXXXL under $1
+      out: {'description': 'plutonium spacesuit', 'size': 'XXXXL', 'max_price': 1.0}
+[2] search_listings (via MCP)
+      in:  {'description': 'plutonium spacesuit', 'size': 'XXXXL', 'max_price': 1.0}
+      out: [] (empty)
+      →    0 match(es)
+[3] branch
+      →    search returned []: stopping before suggest_outfit
 
+No listings matched those filters. Try broader description keywords, a different size, a higher maximum price.
 ```
 
 **On the MCP move:** <!-- what changed in your code, and whether anything
@@ -277,6 +377,24 @@ behaved differently afterwards. If the rewire didn't work, say exactly where it
 broke — the error text and the last thing that worked. That earns the point in
 full. -->
 
+`search_listings` is registered by `mcp_server.py` and called through
+`mcp_client.call_tool` in `agent.py::run_agent`. A direct-call comparison and
+an MCP call returned equal lists with the same count, order, dictionaries, and
+empty-list behavior, so the move did not change the tool result.
+
+**Failure checks**
+
+- **Empty search:** The impossible query above stopped before `suggest_outfit`
+  and said: “No listings matched those filters. Try broader description
+  keywords, a different size, a higher maximum price.”
+- **Empty wardrobe:** The happy-path command above passed an empty `items` list
+  and returned two non-empty general outfit ideas instead of crashing. It began:
+  “Here are two easy, versatile ways to style your vintage-wash graphic tee.”
+- **Model unavailable:** I disabled the cache and supplied an invalid API key
+  only to the test subprocess, which preserves the real `.env` key. The fresh
+  query stopped before `create_fit_card` and said: “The model couldn't be
+  reached, so I couldn't generate the outfit. Check your internet connection
+  and GEMINI_API_KEY, then try again.” No traceback was shown.
 
 
 ---

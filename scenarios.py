@@ -29,24 +29,27 @@ SCENARIOS = [
         "criterion": 2,
     },
     {
-        # A user with nothing saved. One of unit 4's three failure modes.
-        "name": "empty wardrobe",
+        # A normal run whose state IDs can be compared. Criterion 3.
+        "name": "selected listing passes through state",
+        "query": "black leather jacket under $60",
+        "wardrobe": "example",
+        "criterion": 3,
+    },
+    {
+        # The same query is repeated five times so criterion 4 sees the same
+        # selected item and can score each fit card against the same facts.
+        "name": "fit card preserves selected item facts",
+        "query": "vintage graphic tee under $30",
+        "wardrobe": "example",
+        "criterion": 4,
+    },
+    {
+        # A matching query with no saved wardrobe pieces. Criterion 5.
+        "name": "empty wardrobe completes",
         "query": "denim jacket under $50",
         "wardrobe": "empty",
-        "criterion": None,
+        "criterion": 5,
     },
-    # TODO: add what your criteria 3, 4 and 5 need.
-    #
-    # Set "criterion" to the number in criteria.md that the scenario tests.
-    # "criterion": None means a diagnostic run — useful to have, but it isn't
-    # one of your five, and run_eval.py marks it as such in the table.
-    #
-    # For a state criterion, any normal query works — what you're checking is
-    # what ends up in the session, not what the user typed.
-    #
-    # For a fit-card criterion, you probably want the SAME query listed more
-    # than once, or several different items, depending on what your criterion
-    # actually says.
 ]
 
 WARDROBES = ("example", "empty")
@@ -62,5 +65,18 @@ def validate() -> list[str]:
             problems.append(
                 f"scenario {i} has wardrobe {scenario.get('wardrobe')!r} — "
                 f"it should be one of {WARDROBES}"
+            )
+        if scenario.get("criterion") not in range(1, 6):
+            problems.append(
+                f"scenario {i} has criterion {scenario.get('criterion')!r} — "
+                "it should be an integer from 1 through 5"
+            )
+
+    criterion_numbers = [scenario.get("criterion") for scenario in SCENARIOS]
+    for criterion in range(1, 6):
+        count = criterion_numbers.count(criterion)
+        if count != 1:
+            problems.append(
+                f"criterion {criterion} has {count} scenarios — it should have exactly 1"
             )
     return problems
